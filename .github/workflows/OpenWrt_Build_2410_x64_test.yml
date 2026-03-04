@@ -19,8 +19,8 @@ env:
   FILE_NAME: OpenWrt_2410_x64_test
   PRODUCT_NAME: x86_64
   CACHE_TOOLCHAIN: true
-  UPLOAD_BIN_DIR: true
-  UPLOAD_FIRMWARE: true
+  UPLOAD_BIN_DIR: false
+  UPLOAD_FIRMWARE: false
   UPLOAD_RELEASE: true
   TELEGRAM_WORK_PUSH: true
   WECHAT_WORK_PUSH: true
@@ -240,7 +240,7 @@ jobs:
         files: ${{ env.FIRMWARE }}/*
 
     - name: Telegram notification upload success
-      if: steps.upreleases.outputs.status == 'success' && env.TELEGRAM_WORK_PUSH == 'true'
+      if: ${{ steps.upreleases.outputs.status == 'success' && env.TELEGRAM_WORK_PUSH == 'true' && !cancelled() }}
       uses: appleboy/telegram-action@master
       with:
         to: ${{ secrets.TELEGRAM_TO }}
@@ -260,7 +260,7 @@ jobs:
           https://github.com/gxnas/OpenWrt_Build_R24.10_x64_v6.12/releases/tag/${{ env.FILE_NAME }}
 
     - name: Enterprise WeChat notification upload success
-      if: steps.upreleases.outputs.status == 'success' && env.WECHAT_WORK_PUSH == 'true'
+      if: ${{ steps.upreleases.outputs.status == 'success' && env.WECHAT_WORK_PUSH == 'true' && !cancelled() }}
       run: |
         curl -X POST "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${{ secrets.WEBHOOK_SEND_KEY }}" \
         -H "Content-Type: application/json" \

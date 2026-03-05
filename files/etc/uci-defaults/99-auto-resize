@@ -1,0 +1,29 @@
+# EXT4 自动扩容脚本
+#!/bin/sh
+
+echo "===== EXT4 自动扩容 Start ====="
+
+ROOT_DEV=$(findmnt -n -o SOURCE /)
+
+if [ -z "$ROOT_DEV" ]; then
+    echo "Root device not found"
+    exit 0
+fi
+
+echo "Root device: $ROOT_DEV"
+
+# 只处理 ext4
+FSTYPE=$(blkid -s TYPE -o value $ROOT_DEV)
+
+if [ "$FSTYPE" != "ext4" ]; then
+    echo "Not ext4, skip"
+    exit 0
+fi
+
+echo "Resizing filesystem..."
+resize2fs $ROOT_DEV
+
+echo "===== Resize Done ====="
+df -h
+
+exit 0

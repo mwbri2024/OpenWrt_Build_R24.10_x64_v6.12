@@ -1,29 +1,68 @@
 # EXT4 自动扩容脚本
 #!/bin/sh
 
-echo "===== EXT4 自动扩容 Start ====="
+LOGFILE="/root/auto-resize.log"
+echo "===== EXT4 自动扩容开始 =====" > $LOGFILE
 
 ROOT_DEV=$(findmnt -n -o SOURCE /)
 
 if [ -z "$ROOT_DEV" ]; then
-    echo "Root device not found"
+    echo "Root device not found" >> $LOGFILE
     exit 0
 fi
 
-echo "Root device: $ROOT_DEV"
+echo "Root device: $ROOT_DEV" >> $LOGFILE
 
-# 只处理 ext4
 FSTYPE=$(blkid -s TYPE -o value $ROOT_DEV)
 
 if [ "$FSTYPE" != "ext4" ]; then
-    echo "Not ext4, skip"
+    echo "Not ext4 filesystem, skip." >> $LOGFILE
     exit 0
 fi
 
-echo "Resizing filesystem..."
-resize2fs $ROOT_DEV
+# 解析磁盘与分区号
+case "$ROOT_DEV" in
+    *nvme*|*mmcblk*)
+        DISK=$(echo $ROOT_DEV | sed 's/p[0-9]*$//')
+        PART=$(echo $ROOT_DEV | sed 's/.*p//')
+        ;;
+    *)
+        DISK=$(echo $ROOT_DEV | sed 's/[0-9]*$//')
+        PART=$(echo $ROOT_DEV | sed 's/.*\([0-9]\)$/\1/')
+        ;;
+esac
 
-echo "===== Resize Done ====="
-df -h
+echo "Disk: $DISK" >> $LOGFILE
+echo "Partition: $PART" >> $LOGFILE
+
+# 获取磁盘总扇区
+DISK_SIZE=$(cat /sys/block/$(basename $DISK)/size)
+PART_SIZE=$(cat /sys/class/block/$(basename $ROOT_DEV)/size)
+
+echo "Disk sectors: $DISK_SIZE" >> $LOGFILE
+echo "Partition sectors: $PART_SIZE" >> $LOGFILE
+
+if [ "$DISK_SIZE" -le "$PART_SIZE" ]; then
+    echo "No extra space detected, skip resize." >> $LOGFILE
+    exit 0
+fi
+
+echo "Extra space detected. Expanding partition..." >> $LOGFILE
+
+# 使用 growpart（推荐方式）
+if command -v growpart >/dev/null 2>&1; then
+    growpart $DISK $PART >> $LOGFILE 2>&1
+else
+    echo "growpart not found, trying block resize" >> $LOGFILE
+    block resize >> $LOGFILE 2>&1
+fi
+
+sleep 3
+
+echo "Resizing ext4 filesystem..." >> $LOGFILE
+resize2fs $ROOT_DEV >> $LOGFILE 2>&1
+
+echo "===== 扩容完成 =====" >> $LOGFILE
+df -h >> $LOGFILE
 
 exit 0

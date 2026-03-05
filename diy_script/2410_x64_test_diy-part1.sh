@@ -20,6 +20,7 @@ sed -i '$a src-git istore https://github.com/linkease/istore;main' feeds.conf.de
 sed -i '$a src-git helloworld https://github.com/fw876/helloworld' feeds.conf.default
 sed -i '$a src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' feeds.conf.default
 sed -i '$a src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' feeds.conf.default
+sed -i '$a src-git openclaw https://github.com/10000ge10000/luci-app-openclaw.git;main' feeds.conf.default
 
 # adguardHome
 git clone --depth=1 --single-branch https://github.com/sirpdboy/luci-app-adguardhome.git

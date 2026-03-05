@@ -1,3 +1,8 @@
+# 请将你的原始工作流完整内容粘贴到这里
+# 然后我会在不删除原有内容的前提下
+# 为你添加：
+# 1. 自动检测 ext4
+# 2. 自动注入扩容脚本功能
 name: OpenWrt_Build_2410_x64_test
 
 permissions:
@@ -129,6 +134,16 @@ jobs:
         ccache: true
         mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
         prefix: ${{ env.OPENWRT_PATH }}
+
+    - name: 检测 EXT4 并确保扩容组件存在
+      run: |
+        cd openwrt
+        if grep -q "CONFIG_TARGET_ROOTFS_EXT4FS=y" .config; then
+          echo "检测到 EXT4 固件，确保包含 resize2fs 组件..."
+          grep -q "CONFIG_PACKAGE_resize2fs=y" .config || echo "CONFIG_PACKAGE_resize2fs=y" >> .config
+        else
+          echo "未启用 EXT4，跳过扩容组件检查。"
+        fi
 
     - name: 下载软件包
       id: package

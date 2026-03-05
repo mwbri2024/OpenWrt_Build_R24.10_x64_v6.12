@@ -164,20 +164,7 @@ jobs:
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
-    - name: 编译后检查磁盘使用情况
-      if: (!cancelled())
-      run: |
-        echo "=========================================="
-        echo "----------------空间使用-------------------"
-        echo "=========================================="
-        echo "系统空间       类型   总数  已用  可用 使用率"
-        df -hT
-        echo "=========================================="
-        du -h --max-depth=1 openwrt/ --exclude=build_dir --exclude=bin
-        du -h --max-depth=1 openwrt/build_dir
-        du -h --max-depth=1 openwrt/bin
-
-    - name: Telegram notification upload success
+    - name: 编译成功，发Telegram通知
       if: ${{ steps.compile.outputs.status == 'success' && env.TELEGRAM_WORK_PUSH == 'true' }}
       uses: appleboy/telegram-action@master
       with:
@@ -197,7 +184,7 @@ jobs:
           - 🔑 默认密码：无密码
           https://github.com/${{ github.repository }}/releases/tag/${{ env.FILE_NAME }}
 
-    - name: Enterprise WeChat notification upload success
+    - name: 编译成功，发企业微信通知
       if: ${{ steps.compile.outputs.status == 'success' && env.WECHAT_WORK_PUSH == 'true' }}
       run: |
         curl -X POST "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${{ secrets.WEBHOOK_SEND_KEY }}" \
@@ -208,6 +195,19 @@ jobs:
             "content": "【OpenWrt 编译完成】\n\n固件名称: ${{ env.FILE_NAME }}\n编译时间: ${{ steps.tag.outputs.release_date }}\n源码: ${{ env.REPO_URL }}\n分支: ${{ env.REPO_BRANCH }}\n内核: ${{ env.KERNEL }}\n\n下载:\nhttps://github.com/${{ github.repository }}/releases/tag/${{ env.FILE_NAME }}"
           }
         }'
+
+    - name: 编译后检查磁盘使用情况
+      if: (!cancelled())
+      run: |
+        echo "=========================================="
+        echo "----------------空间使用-------------------"
+        echo "=========================================="
+        echo "系统空间       类型   总数  已用  可用 使用率"
+        df -hT
+        echo "=========================================="
+        du -h --max-depth=1 openwrt/ --exclude=build_dir --exclude=bin
+        du -h --max-depth=1 openwrt/build_dir
+        du -h --max-depth=1 openwrt/bin
 
     - name: 上传 bin 目录
       uses: actions/upload-artifact@v4

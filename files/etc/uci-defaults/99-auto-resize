@@ -41,23 +41,19 @@ fi
 echo "检测到额外空间，准备扩容分区..." >> $LOGFILE
 
 # 步骤 1: 扩充分区表
+echo "准备扩容分区..." >> $LOGFILE
+
+# 优先尝试 growpart
 if command -v growpart >/dev/null 2>&1; then
     growpart "$DISK" "$PART" >> $LOGFILE 2>&1
+# 如果没有 growpart，强制使用 parted
+elif command -v parted >/dev/null 2>&1; then
+    echo "使用 parted 进行扩容..." >> $LOGFILE
+    # -s 表示脚本模式，100% 表示将分区扩展到磁盘末尾
+    parted -s "$DISK" resizepart "$PART" 100% >> $LOGFILE 2>&1
 else
-    echo "growpart 不存在，尝试使用 fdisk..." >> $LOGFILE
-    # 自动重写分区表：删除旧分区，新建同编号、同起点、终点最大的分区
-    PART_START=$(cat /sys/class/block/$(basename $ROOT_DEV)/start)
-    (
-      echo d # Delete
-      [ "$PART" -gt 1 ] && echo "$PART"
-      echo n # New
-      echo p # Primary
-      echo "$PART"
-      echo "$PART_START"
-      echo   # Default end
-      echo N # Don't signature
-      echo w # Write
-    ) | fdisk "$DISK" >> $LOGFILE 2>&1
+    echo "错误：未找到 growpart 或 parted，无法扩容分区！" >> $LOGFILE
+    exit 1
 fi
 
 # 步骤 2: 强制内核重新读取分区表
